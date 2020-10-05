@@ -2,16 +2,79 @@ import telebot
 import db
 import texts
 import credentials
+import datetime
+from user import User
+from status import Status
+import keyboards
 
 bot = telebot.TeleBot(credentials.BOT_TOKEN)
+GET_statuses = [Status.GET_PERIOD.value,
+                Status.GET_BALANCE_FOOD.value,
+                Status.GET_BALANCE_ALCO.value,
+                Status.GET_BALANCE_TRANSPORT.value,
+                Status.GET_BALANCE_GENERAL.value,
+                Status.GET_BALANCE_FINPILLOW.value]
 
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    print('start!')
-    user = db.get_user_info(message.chat.id)
-    if user is None:
+    user = db.get_user(message.chat.id)
+    if user.status == Status.HELLO.value:
         bot.send_message(text=texts.GREETING,
+                         parse_mode='Markdown',
+                         chat_id=message.chat.id,
+                         reply_markup=keyboards.YES)
+
+
+@bot.message_handler(content_types=['text'])
+def parse_message(message):
+    user = db.get_user(message.chat.id)
+    if user.status == Status.HELLO.value and message.text == "Да":
+        user.status = Status.GET_PERIOD.value
+        db.update_user(user)
+        bot.send_message(text=texts.GET_PERIOD,
+                         parse_mode='Markdown',
+                         chat_id=message.chat.id,
+                         reply_markup=keyboards.HIDE)
+    elif user.status in GET_statuses:
+        run_get_status(user, message)
+
+
+def run_get_status(user, message):
+    try:
+        if user.status == Status.GET_PERIOD.value:
+            period_length = int(message.text)
+            user.period_end = datetime.datetime.now() + datetime.timedelta(days=period_length)
+
+        elif user.status == Status.GET_BALANCE_FOOD.value:
+            user.food = int(message.text)
+
+        elif user.status == Status.GET_BALANCE_ALCO.value:
+            user.alco = int(message.text)
+
+        elif user.status == Status.GET_BALANCE_TRANSPORT.value:
+            user.transport = int(message.text)
+
+        elif user.status == Status.GET_BALANCE_GENERAL.value:
+            user.general = int(message.text)
+
+        elif user.status == Status.GET_BALANCE_FINPILLOW.value:
+            user.pillow = int(message.text)
+
+        user.status = Status.get_next_balance(user.status)
+        db.update_user(user)
+        if user.status == Status.MAIN_MENU.value:
+            bot.send_message(text=texts.SUCCESSFUL_REG,
+                             parse_mode='Markdown',
+                             chat_id=message.chat.id,
+                             reply_markup=keyboards.MAIN_MENU)
+        else:
+            bot.send_message(text=eval('texts.' + user.status),
+                             parse_mode='Markdown',
+                             chat_id=message.chat.id,
+                             reply_markup=keyboards.HIDE)
+    except ValueError:
+        bot.send_message(text=texts.NOT_A_NUMBER,
                          parse_mode='Markdown',
                          chat_id=message.chat.id)
 

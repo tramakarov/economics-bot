@@ -14,15 +14,20 @@ class Status(Enum):
     GET_SUM_TRANSPORT = 'GET_SUM_TRANSPORT'
     GET_SUM_GENERAL = 'GET_SUM_GENERAL'
     GET_SUM_FINPILLOW = 'GET_SUM_FINPILLOW'
+    GET_PERIOD = 'GET_PERIOD'
+    MAIN_MENU = 'MAIN_MENU'
 
-    def get_next_balance(self, status):
-        if status == self.GET_BALANCE_FOOD:
-            return self.GET_BALANCE_ALCO
-        elif status == self.GET_BALANCE_ALCO:
-            return self.GET_BALANCE_TRANSPORT
-        elif status == self.GET_BALANCE_TRANSPORT:
-            return self.GET_BALANCE_GENERAL
-        elif status == self.GET_BALANCE_GENERAL:
-            return self.GET_BALANCE_FINPILLOW
-        elif status == self.GET_BALANCE_FINPILLOW:
-            return None
+    @staticmethod
+    def get_next_balance(status):
+        if status == Status.GET_PERIOD.value:
+            return Status.GET_BALANCE_FOOD.value
+        elif status == Status.GET_BALANCE_FOOD.value:
+            return Status.GET_BALANCE_ALCO.value
+        elif status == Status.GET_BALANCE_ALCO.value:
+            return Status.GET_BALANCE_TRANSPORT.value
+        elif status == Status.GET_BALANCE_TRANSPORT.value:
+            return Status.GET_BALANCE_GENERAL.value
+        elif status == Status.GET_BALANCE_GENERAL.value:
+            return Status.GET_BALANCE_FINPILLOW.value
+        elif status == Status.GET_BALANCE_FINPILLOW.value:
+            return Status.MAIN_MENU.value

@@ -1,6 +1,6 @@
 import telebot
 import db
-import texts
+from texts import texts
 import credentials
 import datetime
 from user import User
@@ -20,24 +20,31 @@ GET_statuses = [Status.GET_PERIOD.value,
 def start(message):
     user = db.get_user(message.chat.id)
     if user.status == Status.HELLO.value:
-        bot.send_message(text=texts.GREETING,
+        bot.send_message(text=texts['GREETING'],
                          parse_mode='Markdown',
                          chat_id=message.chat.id,
-                         reply_markup=keyboards.YES)
+                         reply_markup=keyboards.YES_INLINE)
 
 
 @bot.message_handler(content_types=['text'])
 def parse_message(message):
     user = db.get_user(message.chat.id)
-    if user.status == Status.HELLO.value and message.text == "Да":
-        user.status = Status.GET_PERIOD.value
-        db.update_user(user)
-        bot.send_message(text=texts.GET_PERIOD,
-                         parse_mode='Markdown',
-                         chat_id=message.chat.id,
-                         reply_markup=keyboards.HIDE)
-    elif user.status in GET_statuses:
+    if user.status in GET_statuses:
         run_get_status(user, message)
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    if call.message:
+        user = db.get_user(call.message.chat.id)
+        if call.data == "YES":
+            user.status = Status.GET_PERIOD.value
+            db.update_user(user)
+            bot.edit_message_reply_markup(message_id=call.message.message_id, chat_id=call.message.chat.id)
+            bot.send_message(text=texts['GET_PERIOD'],
+                             parse_mode='Markdown',
+                             chat_id=call.message.chat.id,
+                             reply_markup=keyboards.HIDE)
 
 
 def run_get_status(user, message):
@@ -64,12 +71,12 @@ def run_get_status(user, message):
         user.status = Status.get_next_balance(user.status)
         db.update_user(user)
         if user.status == Status.MAIN_MENU.value:
-            bot.send_message(text=texts.SUCCESSFUL_REG,
+            bot.send_message(text=texts['SUCCESSFUL_REG'],
                              parse_mode='Markdown',
                              chat_id=message.chat.id,
                              reply_markup=keyboards.MAIN_MENU)
         else:
-            bot.send_message(text=eval('texts.' + user.status),
+            bot.send_message(text=texts[user.status],
                              parse_mode='Markdown',
                              chat_id=message.chat.id,
                              reply_markup=keyboards.HIDE)
